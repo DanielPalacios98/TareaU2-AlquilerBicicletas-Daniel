@@ -1,0 +1,23 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Video · Apagar MongoDB",
+      "type": "shell",
+      "command": "docker compose stop mongo",
+      "problemMatcher": []
+    },
+    {
+      "label": "Video · Encender MongoDB",
+      "type": "shell",
+      "command": "docker compose start mongo",
+      "problemMatcher": []
+    },
+    {
+      "label": "Video · Estado de servicios",
+      "type": "shell",
+      "command": "docker compose ps",
+      "problemMatcher": []
+    }
+  ]
+}

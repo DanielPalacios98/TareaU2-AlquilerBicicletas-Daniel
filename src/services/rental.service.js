@@ -1,4 +1,5 @@
 const crypto = require('node:crypto');
+const { Prisma } = require('@prisma/client');
 const { mongoose } = require('../db/mongo');
 const Bike = require('../models/bike');
 const BikeReport = require('../models/bikeReport');
@@ -15,20 +16,35 @@ async function create(userId, { bikeId }) {
   if (!bike) throw httpError(404, 'La bicicleta indicada no existe en MongoDB');
   if (bike.status !== 'DISPONIBLE') throw httpError(409, 'La bicicleta no está disponible');
 
-  const active = await prisma.rental.findFirst({ where: { bikeId, status: 'ACTIVE' } });
-  if (active) throw httpError(409, 'Esta bicicleta ya tiene un alquiler activo');
+  let rental;
+  try {
+    rental = await prisma.$transaction(async (tx) => {
+      const active = await tx.rental.findFirst({ where: { bikeId, status: 'ACTIVE' } });
+      if (active) throw httpError(409, 'Esta bicicleta ya tiene un alquiler activo');
+      return tx.rental.create({
+        data: {
+          code: `ALQ-${Date.now()}-${crypto.randomBytes(2).toString('hex').toUpperCase()}`,
+          userId,
+          bikeId,
+          bikeName: bike.name,
+          bikeType: bike.type,
+        },
+      });
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+  } catch (error) {
+    if (error.code === 'P2034') throw httpError(409, 'Otra solicitud ganó el alquiler de esta bicicleta');
+    throw error;
+  }
 
-  const rental = await prisma.rental.create({
-    data: {
-      code: `ALQ-${Date.now()}-${crypto.randomBytes(2).toString('hex').toUpperCase()}`,
-      userId,
-      bikeId,
-      bikeName: bike.name,
-      bikeType: bike.type,
-    },
-  });
-  await Bike.updateOne({ _id: bikeId }, { $set: { status: 'INACTIVA' } });
-  return rental;
+  try {
+    if (process.env.VIDEO_FAIL_MONGO_WRITE === 'true') throw new Error('Fallo MongoDB simulado para el video');
+    const result = await Bike.updateOne({ _id: bikeId }, { $set: { status: 'INACTIVA' } });
+    if (result.matchedCount !== 1) throw new Error('MongoDB no confirmó el cambio de disponibilidad');
+    return rental;
+  } catch (error) {
+    await prisma.rental.delete({ where: { id: rental.id } }).catch((rollbackError) => console.error('Rollback falló:', rollbackError.message));
+    throw httpError(503, 'MongoDB no confirmó la disponibilidad; el alquiler fue compensado');
+  }
 }
 
 async function list(userId) {

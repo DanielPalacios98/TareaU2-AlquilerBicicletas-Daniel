@@ -25,7 +25,7 @@
         "body": { "mode": "raw", "raw": "{\n  \"name\": \"Daniel Palacios\",\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}" },
         "url": { "raw": "{{baseUrl}}/api/auth/register", "host": ["{{baseUrl}}"], "path": ["api", "auth", "register"] }
       },
-      "event": [{ "listen": "prerequest", "script": { "exec": ["const run = Date.now().toString();", "pm.collectionVariables.set('email', `daniel.palacios.${run}@example.com`);", "pm.collectionVariables.set('serialNumber', `BIC-${run.slice(-4)}`);", "pm.collectionVariables.unset('token');", "pm.collectionVariables.unset('bikeId');", "pm.collectionVariables.unset('rentalId');", "pm.collectionVariables.unset('reportId1');", "pm.collectionVariables.unset('reportId2');"] } }, { "listen": "test", "script": { "exec": ["pm.test('Registro responde 201', () => pm.response.to.have.status(201));", "const body = pm.response.json();", "pm.test('Devuelve usuario y token', () => { pm.expect(body).to.have.property('id'); pm.expect(body).to.have.property('token'); });", "pm.collectionVariables.set('token', body.token);", "pm.collectionVariables.set('userId', body.id);"] } }]
+      "event": [{ "listen": "prerequest", "script": { "exec": ["const run = Date.now().toString();", "pm.collectionVariables.set('email', `daniel.palacios.${run}@example.com`);", "pm.collectionVariables.set('serialNumber', `BIC-${run.slice(-4)}`);", "pm.collectionVariables.unset('token');", "pm.collectionVariables.unset('bikeId');", "pm.collectionVariables.unset('rentalId');", "pm.collectionVariables.unset('reportId1');", "pm.collectionVariables.unset('reportId2');"] } }, { "listen": "test", "script": { "exec": ["pm.test('Registro responde 201', () => pm.response.to.have.status(201));", "const body = pm.response.json();", "pm.test('Devuelve usuario y token', () => { pm.expect(body).to.have.property('id'); pm.expect(body).to.have.property('token'); });", "pm.test('El correo creado coincide', () => pm.expect(body.email).to.eql(pm.collectionVariables.get('email')));", "pm.collectionVariables.set('token', body.token);", "pm.collectionVariables.set('userId', body.id);"] } }]
     },
     {
       "name": "02 · Iniciar sesión",
@@ -35,7 +35,7 @@
         "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}" },
         "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] }
       },
-      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Login responde 200', () => pm.response.to.have.status(200));", "const body = pm.response.json();", "pm.test('El token del login es texto', () => pm.expect(body.token).to.be.a('string').and.not.empty);", "pm.collectionVariables.set('token', body.token);"] } }]
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Login responde 200', () => pm.response.to.have.status(200));", "const body = pm.response.json();", "pm.test('El token del login es texto', () => pm.expect(body.token).to.be.a('string').and.not.empty);", "pm.test('Login devuelve el usuario esperado', () => pm.expect(body.email).to.eql(pm.collectionVariables.get('email')));", "pm.collectionVariables.set('token', body.token);"] } }]
     },
     {
       "name": "03 · Crear bicicleta MongoDB",
@@ -45,22 +45,22 @@
         "body": { "mode": "raw", "raw": "{\n  \"name\": \"Bicicleta Ruta Daniel\",\n  \"type\": \"ELÉCTRICA\",\n  \"serialNumber\": \"{{serialNumber}}\",\n  \"accessories\": [\"Casco\", \"Luces\"],\n  \"station\": \"Estación Centro\"\n}" },
         "url": { "raw": "{{baseUrl}}/api/bikes", "host": ["{{baseUrl}}"], "path": ["api", "bikes"] }
       },
-      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Crear bicicleta responde 201', () => pm.response.to.have.status(201));", "const body = pm.response.json();", "pm.test('Se agrega Cargador por middleware Mongoose', () => pm.expect(body.accessories).to.include('Cargador'));", "pm.collectionVariables.set('bikeId', body._id);"] } }]
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Crear bicicleta responde 201', () => pm.response.to.have.status(201));", "const body = pm.response.json();", "pm.test('Se agrega Cargador por middleware Mongoose', () => pm.expect(body.accessories).to.include('Cargador'));", "pm.test('La bicicleta inicia DISPONIBLE', () => pm.expect(body.status).to.eql('DISPONIBLE'));", "pm.collectionVariables.set('bikeId', body._id);"] } }]
     },
     {
       "name": "04 · Listar bicicletas",
       "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/bikes?sort=-createdAt", "host": ["{{baseUrl}}"], "path": ["api", "bikes"], "query": [{ "key": "sort", "value": "-createdAt" }] } },
-      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Listado responde 200', () => pm.response.to.have.status(200));", "const body = pm.response.json();", "pm.test('Listado es un arreglo', () => pm.expect(body).to.be.an('array'));", "pm.test('Incluye la bicicleta creada', () => pm.expect(body.some((bike) => bike._id === pm.collectionVariables.get('bikeId'))).to.be.true);"] } }]
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Listado responde 200', () => pm.response.to.have.status(200));", "const body = pm.response.json();", "pm.test('Listado es un arreglo', () => pm.expect(body).to.be.an('array'));", "pm.test('El listado no está vacío', () => pm.expect(body.length).to.be.greaterThan(0));", "pm.test('Incluye la bicicleta creada', () => pm.expect(body.some((bike) => bike._id === pm.collectionVariables.get('bikeId'))).to.be.true);"] } }]
     },
     {
       "name": "05 · Buscar por q",
       "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/bikes?q=Daniel&fields=name,type,station&sort=name", "host": ["{{baseUrl}}"], "path": ["api", "bikes"], "query": [{ "key": "q", "value": "Daniel" }, { "key": "fields", "value": "name,type,station" }, { "key": "sort", "value": "name" }] } },
-      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Búsqueda responde 200', () => pm.response.to.have.status(200));", "const body = pm.response.json();", "pm.test('La proyección limita campos', () => { pm.expect(body[0]).to.have.property('name'); pm.expect(body[0]).to.not.have.property('serialNumber'); });"] } }]
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Búsqueda responde 200', () => pm.response.to.have.status(200));", "const body = pm.response.json();", "pm.test('La búsqueda devuelve coincidencias', () => pm.expect(body.length).to.be.greaterThan(0));", "pm.test('La proyección limita campos', () => { pm.expect(body[0]).to.have.property('name'); pm.expect(body[0]).to.not.have.property('serialNumber'); });"] } }]
     },
     {
       "name": "06 · Obtener bicicleta",
       "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/bikes/{{bikeId}}", "host": ["{{baseUrl}}"], "path": ["api", "bikes", "{{bikeId}}"] } },
-      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Detalle responde 200', () => pm.response.to.have.status(200));", "const body = pm.response.json();", "pm.test('El virtual isAvailable existe', () => pm.expect(body).to.have.property('isAvailable', true));"] } }]
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Detalle responde 200', () => pm.response.to.have.status(200));", "const body = pm.response.json();", "pm.test('El detalle corresponde al id', () => pm.expect(body._id).to.eql(pm.collectionVariables.get('bikeId')));", "pm.test('El virtual isAvailable existe', () => pm.expect(body).to.have.property('isAvailable', true));"] } }]
     },
     {
       "name": "07 · Rechazar id inválido",
@@ -75,7 +75,7 @@
         "body": { "mode": "raw", "raw": "{\n  \"bikeId\": \"{{bikeId}}\"\n}" },
         "url": { "raw": "{{baseUrl}}/api/rentals", "host": ["{{baseUrl}}"], "path": ["api", "rentals"] }
       },
-      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Crear alquiler responde 201', () => pm.response.to.have.status(201));", "const body = pm.response.json();", "pm.test('El alquiler inicia ACTIVE', () => pm.expect(body.status).to.eql('ACTIVE'));", "pm.collectionVariables.set('rentalId', body.id);"] } }]
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Crear alquiler responde 201', () => pm.response.to.have.status(201));", "const body = pm.response.json();", "pm.test('El alquiler inicia ACTIVE', () => pm.expect(body.status).to.eql('ACTIVE'));", "pm.test('El alquiler tiene código', () => pm.expect(body.code).to.match(/^ALQ-/));", "pm.collectionVariables.set('rentalId', body.id);"] } }]
     },
     {
       "name": "09 · Impedir doble alquiler",
@@ -90,12 +90,12 @@
     {
       "name": "10 · Consulta unida Rental + Bike",
       "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{baseUrl}}/api/rentals/with-bikes", "host": ["{{baseUrl}}"], "path": ["api", "rentals", "with-bikes"] } },
-      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Consulta unida responde 200', () => pm.response.to.have.status(200));", "const body = pm.response.json();", "pm.test('La fila unida tiene bike', () => pm.expect(body.find((row) => row.id === pm.collectionVariables.get('rentalId')).bike).to.have.property('_id'));"] } }]
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Consulta unida responde 200', () => pm.response.to.have.status(200));", "const body = pm.response.json();", "pm.test('La consulta devuelve filas', () => pm.expect(body.length).to.be.greaterThan(0));", "pm.test('La fila unida tiene bike', () => pm.expect(body.find((row) => row.id === pm.collectionVariables.get('rentalId')).bike).to.have.property('_id'));"] } }]
     },
     {
       "name": "11 · Devolver alquiler",
       "request": { "method": "PUT", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{baseUrl}}/api/rentals/{{rentalId}}/return", "host": ["{{baseUrl}}"], "path": ["api", "rentals", "{{rentalId}}", "return"] } },
-      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Devolución responde 200', () => pm.response.to.have.status(200));", "pm.test('Estado es RETURNED', () => pm.expect(pm.response.json().status).to.eql('RETURNED'));"] } }]
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Devolución responde 200', () => pm.response.to.have.status(200));", "pm.test('Estado es RETURNED', () => pm.expect(pm.response.json().status).to.eql('RETURNED'));", "pm.test('La devolución registra fecha', () => pm.expect(pm.response.json().returnedAt).to.exist);"] } }]
     },
     {
       "name": "12 · Crear reporte de estado 1",
@@ -120,7 +120,7 @@
     {
       "name": "14 · Listar reportes con aggregate",
       "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{baseUrl}}/api/reports", "host": ["{{baseUrl}}"], "path": ["api", "reports"] } },
-      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Reportes responden 200', () => pm.response.to.have.status(200));", "const body = pm.response.json();", "pm.test('Incluye dos reportes y resumen', () => { pm.expect(body.items.length).to.be.at.least(2); pm.expect(body.summary.totalReports).to.be.at.least(2); });", "pm.test('Populate incluye datos de bicicleta', () => pm.expect(body.items[0].bikeId).to.have.property('name'));"] } }]
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Reportes responden 200', () => pm.response.to.have.status(200));", "const body = pm.response.json();", "pm.test('Incluye dos reportes y resumen', () => { pm.expect(body.items.length).to.be.at.least(2); pm.expect(body.summary.totalReports).to.be.at.least(2); });", "pm.test('El aggregate calcula promedio', () => pm.expect(body.summary.averageRating).to.be.a('number'));", "pm.test('Populate incluye datos de bicicleta', () => pm.expect(body.items[0].bikeId).to.have.property('name'));"] } }]
     },
     {
       "name": "15 · Borrado bloqueado mientras existe Rental",

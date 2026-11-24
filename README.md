@@ -38,9 +38,12 @@ Colección Postman: `postman/TareaU2_Palacios.postman_collection.json`
 - `src/services/`: reglas de negocio e integración entre bases.
 - `postman/`: colección con datos propios, aserciones y limpieza.
 - `docs/`: workload, decisiones, ER híbrido y tabla de referencias.
+- `MANUAL.md`: preparación y guion corregido para el video de máximo 5 minutos.
 
 ## Pruebas
 
 Con Docker y la API activos, importa la colección en Postman y ejecuta **Run collection**. La colección registra un usuario y datos nuevos en cada ejecución, guarda sus variables y elimina reportes, alquileres y bicicleta al final.
 
 Las capturas solicitadas de Compass, pgAdmin y el resumen de Postman deben guardarse en `docs/capturas/`.
+
+La colección contiene 19 solicitudes y 43 aserciones. El servicio de alquiler usa una transacción Serializable en PostgreSQL y una compensación si MongoDB falla al marcar la bicicleta como no disponible.

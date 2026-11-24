@@ -5,6 +5,7 @@ const prisma = require('../db/prisma');
 const httpError = require('../utils/httpError');
 
 async function create(userId, { rentalId, status, rating, notes }) {
+  if (!rentalId) throw httpError(400, 'rentalId es obligatorio');
   const rental = await prisma.rental.findFirst({ where: { id: rentalId, userId } });
   if (!rental) {
     const exists = await prisma.rental.findUnique({ where: { id: rentalId } });
