@@ -1,0 +1,7 @@
+node_modules/
+.env
+coverage/
+dist/
+docs/capturas/*.png
+docs/capturas/*.jpg
+docs/capturas/*.jpeg

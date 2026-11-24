@@ -1,0 +1,41 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RentalStatus {
+  ACTIVE
+  RETURNED
+  CANCELLED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  rentals      Rental[]
+}
+
+model Rental {
+  id           String       @id @default(cuid())
+  code         String       @unique
+  userId       String
+  bikeId       String?
+  bikeName     String?
+  bikeType     String?
+  status       RentalStatus @default(ACTIVE)
+  startedAt    DateTime     @default(now())
+  returnedAt   DateTime?
+  createdAt    DateTime     @default(now())
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([bikeId])
+  @@index([status])
+}
